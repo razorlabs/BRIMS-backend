@@ -1,12 +1,29 @@
-from .models import PatientModel
+from .models import PatientModel, SpecimenModel, SpecimenType as SpecimenOption
 
 import graphene
-from graphene_django import DjangoObjectType
-
+from graphene_django.types import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 
 class PatientType(DjangoObjectType):
     class Meta:
         model = PatientModel
+
+class SpecimenType(DjangoObjectType):
+    type = graphene.String()
+    patientid = graphene.Int()
+
+    class Meta:
+        model = SpecimenModel
+        description = " Specimens collected for a patient "
+
+    # return actual type as string rather then type as an object
+    # example: "Dried Blood Spot" instead of type{ type: "Dried Blood Spot"}
+    def resolve_type(self, info):
+        return '{}'.format(self.type.type)
+
+    # override type field to return a string rather than an object
+    def resolve_patientid(self, info):
+        return '{}'.format(self.patient.id)
 
 
 class CreatePatientMutation(graphene.Mutation):
@@ -31,15 +48,23 @@ class Mutation(graphene.ObjectType):
     create_patient = CreatePatientMutation.Field()
 
 class Query(graphene.ObjectType):
-    # name here is what ends up in query (underscores end up camelCase for graphql mobile)
+    # name here is what ends up in query (underscores end up camelCase for graphql spec)
     all_patients = graphene.List(PatientType)
+    all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
                              pid=graphene.String(),
                              external_id=graphene.String())
 
-    def resolve_all_patients(self, info):
+    def resolve_all_patients(self, info, **kwargs):
         return PatientModel.objects.all()
+
+    def resolve_all_specimen(self, info, **kwargs):
+        patient = kwargs.get('patient')
+        if patient is not None:
+            return SpecimenModel.objects.all().filter(patient=patient)
+        return SpecimenModel.objects.all()
+
 
     def resolve_patient(self, info, **kwargs):
         id = kwargs.get('id')
