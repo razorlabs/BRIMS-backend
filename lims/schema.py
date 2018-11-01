@@ -1,4 +1,4 @@
-from .models import PatientModel, SpecimenModel, SpecimenType as SpecimenOption
+from .models import PatientModel, SpecimenModel, AliquotModel
 
 import graphene
 from graphene_django.types import DjangoObjectType
@@ -24,6 +24,22 @@ class SpecimenType(DjangoObjectType):
     # override type field to return a string rather than an object
     def resolve_patientid(self, info):
         return '{}'.format(self.patient.id)
+
+class AliquotType(DjangoObjectType):
+    visit = graphene.String()
+    type = graphene.String()
+    specimenid = graphene.Int()
+    class Meta:
+        model = AliquotModel
+
+    def resolve_specimenid(self, info):
+        return '{}'.format(self.specimen.id)
+
+    def resolve_visit(self, info):
+        return '{}'.format(self.visit.label)
+
+    def resolve_type(self, info):
+        return '{}'.format(self.type.type)
 
 
 class CreatePatientMutation(graphene.Mutation):
@@ -51,6 +67,7 @@ class Query(graphene.ObjectType):
     # name here is what ends up in query (underscores end up camelCase for graphql spec)
     all_patients = graphene.List(PatientType)
     all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
+    all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
                              pid=graphene.String(),
@@ -64,6 +81,12 @@ class Query(graphene.ObjectType):
         if patient is not None:
             return SpecimenModel.objects.all().filter(patient=patient)
         return SpecimenModel.objects.all()
+
+    def resolve_all_aliquot(self, info, **kwargs):
+        specimen = kwargs.get('specimen')
+        if specimen is not None:
+            return AliquotModel.objects.all().filter(specimen=specimen)
+        return AliquotModel.objects.all()
 
 
     def resolve_patient(self, info, **kwargs):
