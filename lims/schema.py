@@ -1,12 +1,20 @@
-from .models import PatientModel, SpecimenModel, AliquotModel
-
 import graphene
+import graphql_jwt
+
 from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
+from django.contrib.auth import get_user_model
+
+from .models import PatientModel, SpecimenModel, AliquotModel
+
+class UserType(DjangoObjectType):
+    class Meta:
+        model = get_user_model()
 
 class PatientType(DjangoObjectType):
     class Meta:
         model = PatientModel
+
 
 class SpecimenType(DjangoObjectType):
     type = graphene.String()
@@ -25,6 +33,7 @@ class SpecimenType(DjangoObjectType):
     def resolve_patientid(self, info):
         return '{}'.format(self.patient.id)
 
+
 class AliquotType(DjangoObjectType):
     visit = graphene.String()
     type = graphene.String()
@@ -42,16 +51,63 @@ class AliquotType(DjangoObjectType):
         return '{}'.format(self.type.type)
 
 
+class CreateUser(graphene.Mutation):
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        username = graphene.String(required=True)
+        password = graphene.String(required=True)
+        email = graphene.String(required=True)
+
+    def mutate(self, info, username, password, email):
+        user = get_user_model()(
+            username=username,
+            email=email,
+        )
+        user.set_password(password)
+        user.save()
+
+        return CreateUser(user=user)
+
+
 class CreatePatientMutation(graphene.Mutation):
+    id = graphene.Int()
+    pid = graphene.String()
+    external_id = graphene.String()
+    synced = graphene.Boolean()
+
+    class Arguments:
+        pid = graphene.String()
+        external_id = graphene.String()
+        synced = graphene.Boolean()
+
+    def mutate(self, info, pid, **kwargs):
+        external_id = kwargs.get('external_id', None)
+        synced = kwargs.get('synced', False)
+
+        patient_input = PatientModel(
+            pid=pid,
+            external_id=external_id,
+            synced=synced)
+        patient_input.save()
+
+        return CreatePatientMutation(
+            id=patient_input.id,
+            pid=patient_input.pid,
+            external_id=patient_input.external_id,
+            synced=patient_input.synced,
+        )
+
+class CreatePatientAPIMutation(graphene.Mutation):
     id = graphene.Int()
     pid = graphene.String()
     external_id = graphene.String()
 
     class Arguments:
         pid = graphene.String()
-        external_id = graphene.String()
+        external_id = graphene.String(required=False)
 
-    def mutate(self, info, pid, external_id):
+    def mutate(self, info, pid, external_id=""):
         patient_input = PatientModel(pid=pid, external_id=external_id)
         patient_input.save()
         return CreatePatientMutation(
@@ -60,11 +116,22 @@ class CreatePatientMutation(graphene.Mutation):
             external_id=patient_input.external_id,
         )
 
+
+
 class Mutation(graphene.ObjectType):
+    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
+    verify_token = graphql_jwt.Verify.Field()
+    refresh_token = graphql_jwt.Refresh.Field()
     create_patient = CreatePatientMutation.Field()
+    create_patient_api = CreatePatientAPIMutation.Field()
+    create_user = CreateUser.Field()
+
 
 class Query(graphene.ObjectType):
-    # name here is what ends up in query (underscores end up camelCase for graphql spec)
+    # name here is what ends up in query
+    # (underscores end up camelCase for graphql spec)
+    me = graphene.Field(UserType)
+    users = graphene.List(UserType)
     all_patients = graphene.List(PatientType)
     all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
@@ -72,6 +139,16 @@ class Query(graphene.ObjectType):
                              id=graphene.Int(),
                              pid=graphene.String(),
                              external_id=graphene.String())
+
+    def resolve_users(self, info):
+        return get_user_model().objects.all()
+
+    def resolve_me(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception('Not logged in!')
+
+        return user
 
     def resolve_all_patients(self, info, **kwargs):
         return PatientModel.objects.all()
@@ -104,5 +181,6 @@ class Query(graphene.ObjectType):
             return PatientModel.objects.get(external_id=external_id)
 
         return None
+
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
