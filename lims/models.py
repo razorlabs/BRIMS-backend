@@ -1,5 +1,13 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from datetime import datetime
+
+class CustomUser(AbstractUser):
+    """
+        Custom user stub in case of future user customization need
+        Special thanks to wsvincent (and associated tutorial)
+    """
+    pass
 
 class BoxModel(models.Model):
     name = models.CharField(max_length=50)

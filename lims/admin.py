@@ -1,11 +1,21 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 
-from . import models
+from .forms import CustomUserCreationForm, CustomUserChangeForm
+from .models import CustomUser, PatientModel, SpecimenModel, SpecimenType, AliquotModel, AliquotType, VisitModel, SourceModel
 
-admin.site.register(models.PatientModel)
-admin.site.register(models.SpecimenModel)
-admin.site.register(models.SpecimenType)
-admin.site.register(models.AliquotModel)
-admin.site.register(models.AliquotType)
-admin.site.register(models.VisitModel)
-admin.site.register(models.SourceModel)
+class CustomUserAdmin(UserAdmin):
+    add_form = CustomUserCreationForm
+    form = CustomUserChangeForm
+    model = CustomUser
+    list_display = ['email', 'username',]
+
+admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(PatientModel)
+admin.site.register(SpecimenModel)
+admin.site.register(SpecimenType)
+admin.site.register(AliquotModel)
+admin.site.register(AliquotType)
+admin.site.register(VisitModel)
+admin.site.register(SourceModel)

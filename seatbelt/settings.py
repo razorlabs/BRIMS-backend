@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'debug_toolbar',
     'graphene_django',
-    'lims',
+    'lims.apps.LimsConfig',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +60,7 @@ ROOT_URLCONF = 'seatbelt.urls'
 CORS_ORIGIN_WHITELIST = (
 )
 
+AUTH_USER_MODEL = 'lims.CustomUser'
 
 TEMPLATES = [
     {
@@ -89,7 +90,7 @@ DATABASES = {
         'NAME': '',
         'USER': '',
         'PASSWORD': '',
-        'HOST': 'localhost',
+        'HOST': '',
         'PORT': '',
 
     }
