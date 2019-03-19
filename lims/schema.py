@@ -1,5 +1,6 @@
 import graphene
 import graphql_jwt
+from graphql_jwt.decorators import login_required
 
 from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -71,19 +72,63 @@ class CreateUser(graphene.Mutation):
 
 
 class CreatePatientMutation(graphene.Mutation):
+    """Allows creation of a patient from web UI or external source
+    Arguments:
+    id --
+    pid --
+    external_id --
+    source -- should be set based on django settings (local system or remote)
+    synced --
+    """
     id = graphene.Int()
     pid = graphene.String()
     external_id = graphene.String()
+    source = graphene.String()
     synced = graphene.Boolean()
 
     class Arguments:
         pid = graphene.String()
         external_id = graphene.String()
+        source = graphene.String()
         synced = graphene.Boolean()
 
     def mutate(self, info, pid, **kwargs):
         external_id = kwargs.get('external_id', None)
+        source = kwargs.get('source', "local")
         synced = kwargs.get('synced', False)
+
+        patient_input = PatientModel(
+            pid=pid,
+            external_id=external_id,
+            source=source,
+            synced=synced)
+        patient_input.save()
+
+        return CreatePatientMutation(
+            id=patient_input.id,
+            pid=patient_input.pid,
+            external_id=patient_input.external_id,
+            source=patient_input.source,
+            synced=patient_input.synced,
+        )
+
+class CreatePatientAPIMutation(graphene.Mutation):
+    id = graphene.Int()
+    pid = graphene.String()
+    external_id = graphene.String()
+    # Was the patient created in the local system or
+    source = graphene.String()
+    synced = graphene.Boolean()
+
+    class Arguments:
+        pid = graphene.String()
+        external_id = graphene.String()
+        source = graphene.String()
+        synced = graphene.Boolean()
+
+    def mutate(self, info, pid, **kwargs):
+        external_id = kwargs.get('external_id', None)
+        synced = kwargs.get('synced', True)
 
         patient_input = PatientModel(
             pid=pid,
@@ -97,25 +142,6 @@ class CreatePatientMutation(graphene.Mutation):
             external_id=patient_input.external_id,
             synced=patient_input.synced,
         )
-
-class CreatePatientAPIMutation(graphene.Mutation):
-    id = graphene.Int()
-    pid = graphene.String()
-    external_id = graphene.String()
-
-    class Arguments:
-        pid = graphene.String()
-        external_id = graphene.String(required=False)
-
-    def mutate(self, info, pid, external_id=""):
-        patient_input = PatientModel(pid=pid, external_id=external_id)
-        patient_input.save()
-        return CreatePatientMutation(
-            id=patient_input.id,
-            pid=patient_input.pid,
-            external_id=patient_input.external_id,
-        )
-
 
 
 class Mutation(graphene.ObjectType):
@@ -165,7 +191,7 @@ class Query(graphene.ObjectType):
             return AliquotModel.objects.all().filter(specimen=specimen)
         return AliquotModel.objects.all()
 
-
+    @login_required
     def resolve_patient(self, info, **kwargs):
         id = kwargs.get('id')
         pid = kwargs.get('pid')
