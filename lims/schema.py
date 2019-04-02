@@ -94,7 +94,7 @@ class CreatePatientMutation(graphene.Mutation):
 
     def mutate(self, info, pid, **kwargs):
         external_id = kwargs.get('external_id', None)
-        source = kwargs.get('source', "local")
+        source = kwargs.get('source', 1)
         synced = kwargs.get('synced', False)
 
         patient_input = PatientModel(
@@ -143,7 +143,6 @@ class CreatePatientAPIMutation(graphene.Mutation):
             synced=patient_input.synced,
         )
 
-
 class Mutation(graphene.ObjectType):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
@@ -191,7 +190,6 @@ class Query(graphene.ObjectType):
             return AliquotModel.objects.all().filter(specimen=specimen)
         return AliquotModel.objects.all()
 
-    @login_required
     def resolve_patient(self, info, **kwargs):
         id = kwargs.get('id')
         pid = kwargs.get('pid')
