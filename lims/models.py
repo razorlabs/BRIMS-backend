@@ -46,7 +46,7 @@ class SourceModel(models.Model):
 class PatientModel(models.Model):
     pid = models.CharField(unique=True, max_length=10)
     external_id = models.CharField(null=True, blank=True, max_length=40)
-    source = models.ForeignKey('SourceModel', on_delete=models.CASCADE)
+    source = models.ForeignKey('SourceModel', on_delete=models.CASCADE, default=1)
     synced = models.BooleanField(default=False)
     sync_date = models.DateTimeField(blank=True, null=True)
     create_date = models.DateTimeField(auto_now_add=True)
