@@ -6,7 +6,7 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel
+from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -16,10 +16,21 @@ class PatientType(DjangoObjectType):
     class Meta:
         model = PatientModel
 
+class Box(DjangoObjectType):
+    class Meta:
+        model = BoxModel
+
+class BoxType(DjangoObjectType):
+    class Meta:
+        model = BoxTypeModel
+
+class BoxSlotType(DjangoObjectType):
+    class Meta:
+        model = BoxSlotModel
 
 class SpecimenType(DjangoObjectType):
     type = graphene.String()
-    patientid = graphene.Int()
+    patientid = graphene.String()
 
     class Meta:
         model = SpecimenModel
@@ -32,7 +43,7 @@ class SpecimenType(DjangoObjectType):
 
     # override type field to return a string rather than an object
     def resolve_patientid(self, info):
-        return '{}'.format(self.patient.id)
+        return '{}'.format(self.patient.pid)
 
 
 class AliquotType(DjangoObjectType):
@@ -157,13 +168,17 @@ class Query(graphene.ObjectType):
     # (underscores end up camelCase for graphql spec)
     me = graphene.Field(UserType)
     users = graphene.List(UserType)
+    all_boxes = graphene.List(Box)
+    all_slots = graphene.types.json.JSONString(id=graphene.Int())
     all_patients = graphene.List(PatientType)
     all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
+    box_type = graphene.Field(BoxType, id=graphene.Int())
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
                              pid=graphene.String(),
                              external_id=graphene.String())
+    box = graphene.Field(Box, id=graphene.Int())
 
     def resolve_users(self, info):
         return get_user_model().objects.all()
@@ -174,6 +189,42 @@ class Query(graphene.ObjectType):
             raise Exception('Not logged in!')
 
         return user
+
+    def resolve_all_boxes(self, info, **kwargs):
+        return BoxModel.objects.all()
+
+    def resolve_box_type(self, info, **kwargs):
+        id = kwargs.get('id')
+        if id is not None:
+            box = BoxModel.objects.get(id=id)
+            return (box.box_type)
+
+
+    def resolve_all_slots(self, info, **kwargs):
+        box_json = {}
+        id = kwargs.get('id')
+        box = BoxModel.objects.get(id=id)
+        # this can be editable in the future
+        content_entry = "{patient} {aliquot} {aliquot_id}"
+        # builds json object for ingestion by cell table in react
+        # row goes first as JS is stuck with a for loop starting with row
+        for slot in box.boxslotmodel_set.all():
+            column = {}
+            content = content_entry.format(
+                patient=slot.content.specimen.patient,
+                aliquot=slot.content,
+                aliquot_id=slot.content.pk)
+            column[slot.column_position] = content
+            if box_json.get(slot.row_position) is not None:
+                box_json[slot.row_position].update(column)
+            else:
+                box_json[slot.row_position] = column
+        return box_json
+
+    def resolve_box(self, info, **kwargs):
+        id = kwargs.get('id')
+        if id is not None:
+            return BoxSlotModel.objects.all()
 
     def resolve_all_patients(self, info, **kwargs):
         return PatientModel.objects.all()
