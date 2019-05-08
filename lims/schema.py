@@ -31,6 +31,7 @@ class BoxSlotType(DjangoObjectType):
 class SpecimenType(DjangoObjectType):
     type = graphene.String()
     patientid = graphene.String()
+    #collectdate = graphene.Date()
 
     class Meta:
         model = SpecimenModel
@@ -44,6 +45,10 @@ class SpecimenType(DjangoObjectType):
     # override type field to return a string rather than an object
     def resolve_patientid(self, info):
         return '{}'.format(self.patient.pid)
+
+    #def resolve_collectdate(self, info)
+    #    return '{}'.format(self.collectdate.split('T')
+
 
 
 class AliquotType(DjangoObjectType):

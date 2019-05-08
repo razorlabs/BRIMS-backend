@@ -137,7 +137,7 @@ class SpecimenModel(models.Model):
     patient = models.ForeignKey('PatientModel', on_delete=models.CASCADE)
     type = models.ForeignKey(
         'SpecimenType', related_name='types', on_delete=models.CASCADE)
-    collectdate = models.DateTimeField()
+    collectdate = models.DateField()
     collecttime = models.TimeField()
     create_date = models.DateTimeField(auto_now_add=True)
     modify_date = models.DateTimeField(auto_now=True)
