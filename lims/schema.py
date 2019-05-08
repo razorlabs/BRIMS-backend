@@ -29,9 +29,14 @@ class BoxSlotType(DjangoObjectType):
         model = BoxSlotModel
 
 class SpecimenType(DjangoObjectType):
+    """
+        type: returns the specimen type
+        patientid: returns "PID" or the patient string used for study tracking
+        patient: returns the internal lims id of patient for URL routing
+    """
     type = graphene.String()
     patientid = graphene.String()
-    #collectdate = graphene.Date()
+    patient = graphene.String()
 
     class Meta:
         model = SpecimenModel
@@ -46,8 +51,8 @@ class SpecimenType(DjangoObjectType):
     def resolve_patientid(self, info):
         return '{}'.format(self.patient.pid)
 
-    #def resolve_collectdate(self, info)
-    #    return '{}'.format(self.collectdate.split('T')
+    def resolve_patient(self, info):
+        return '{}'.format(self.patient.id)
 
 
 
