@@ -10,6 +10,16 @@ class CustomUser(AbstractUser):
     pass
 
 
+class EventModel(models.Model):
+    """
+        A scheduled event in a study
+        ex) week 1 visit
+        ex) baseline visit
+    """
+
+    event = models.CharField(max_length=120, unique=True)
+
+
 class BoxSlotModel(models.Model):
     """
         Slot in a box model

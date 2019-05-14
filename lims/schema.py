@@ -6,7 +6,7 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel
+from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -27,6 +27,10 @@ class BoxType(DjangoObjectType):
 class BoxSlotType(DjangoObjectType):
     class Meta:
         model = BoxSlotModel
+
+class EventType(DjangoObjectType):
+    class Meta:
+        model = EventModel
 
 class SpecimenType(DjangoObjectType):
     """
@@ -181,6 +185,7 @@ class Query(graphene.ObjectType):
     all_boxes = graphene.List(Box)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
     all_patients = graphene.List(PatientType)
+    all_events = graphene.List(EventType)
     all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
     box_type = graphene.Field(BoxType, id=graphene.Int())
