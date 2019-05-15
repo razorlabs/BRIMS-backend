@@ -95,9 +95,36 @@ class CreateUser(graphene.Mutation):
 
         return CreateUser(user=user)
 
+class CreateEventMutation(graphene.Mutation):
+    """
+    Allows creation of an event
+    """
+
+    # event examples: visit1 baseline
+    event = graphene.String()
+    # the order in which the events should be displayed
+    order = graphene.Int()
+
+    class Arguments:
+        event = graphene.String()
+        order = graphene.Int()
+
+    def mutate(self, info, event, order):
+
+        event_input = EventModel(
+            event=event,
+            order=order
+        )
+        event_input.save()
+
+        return CreateEventMutation(
+            event=event_input.event,
+            order=event_input.order,
+        )
 
 class CreatePatientMutation(graphene.Mutation):
-    """Allows creation of a patient from web UI or external source
+    """
+    Allows creation of a patient from web UI or external source
     Arguments:
     id --
     pid --
@@ -175,6 +202,7 @@ class Mutation(graphene.ObjectType):
     create_patient = CreatePatientMutation.Field()
     create_patient_api = CreatePatientAPIMutation.Field()
     create_user = CreateUser.Field()
+    create_event = CreateEventMutation.Field()
 
 
 class Query(graphene.ObjectType):
@@ -207,6 +235,9 @@ class Query(graphene.ObjectType):
 
     def resolve_all_boxes(self, info, **kwargs):
         return BoxModel.objects.all()
+
+    def resolve_all_events(self, info, **kwargs):
+        return EventModel.objects.all()
 
     def resolve_box_type(self, info, **kwargs):
         id = kwargs.get('id')

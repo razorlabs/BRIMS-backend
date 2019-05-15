@@ -15,9 +15,11 @@ class EventModel(models.Model):
         A scheduled event in a study
         ex) week 1 visit
         ex) baseline visit
+        order: depicts order of display in draw/event grid
     """
 
     event = models.CharField(max_length=120, unique=True)
+    order = models.IntegerField(unique=True)
 
 
 class BoxSlotModel(models.Model):
