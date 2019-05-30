@@ -1,0 +1,9 @@
+[
+  {
+      "model": "lims.SourceModel",
+      "pk": 1,
+      "fields": {
+        "name": "local"
+      }
+  }
+]
