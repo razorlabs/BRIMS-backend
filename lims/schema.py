@@ -6,15 +6,19 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel
+from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel
 
 class UserType(DjangoObjectType):
     class Meta:
         model = get_user_model()
 
 class PatientType(DjangoObjectType):
+    source = graphene.String()
     class Meta:
         model = PatientModel
+
+    def resolve_source(self, info):
+        return '{}'.format(self.source.name)
 
 class Box(DjangoObjectType):
     class Meta:
@@ -31,6 +35,11 @@ class BoxSlotType(DjangoObjectType):
 class EventType(DjangoObjectType):
     class Meta:
         model = EventModel
+
+class ScheduleType(DjangoObjectType):
+    class Meta:
+        model = ScheduleModel
+
 
 class SpecimenType(DjangoObjectType):
     """
@@ -212,6 +221,7 @@ class Query(graphene.ObjectType):
     users = graphene.List(UserType)
     all_boxes = graphene.List(Box)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
+    all_schedules = graphene.List(ScheduleType)
     all_patients = graphene.List(PatientType)
     all_events = graphene.List(EventType)
     all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
@@ -245,6 +255,8 @@ class Query(graphene.ObjectType):
             box = BoxModel.objects.get(id=id)
             return (box.box_type)
 
+    def resolve_all_schedules(self, info, **kwargs):
+        return ScheduleModel.objects.all()
 
     def resolve_all_slots(self, info, **kwargs):
         box_json = {}

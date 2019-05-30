@@ -1,6 +1,13 @@
 from django.contrib.auth.models import AbstractUser
+from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from datetime import datetime
+
+"""
+    Note: Many of the field types are postgres specific
+    Please reference: https://docs.djangoproject.com/en/2.2/ref/contrib/postgres/fields/
+"""
 
 class CustomUser(AbstractUser):
     """
@@ -10,6 +17,7 @@ class CustomUser(AbstractUser):
     pass
 
 
+# patient scheduleing models
 class EventModel(models.Model):
     """
         A scheduled event in a study
@@ -21,7 +29,27 @@ class EventModel(models.Model):
     event = models.CharField(max_length=120, unique=True)
     order = models.IntegerField(unique=True)
 
+    def __str__(self):
+        return self.event
 
+
+class SpecimenType(models.Model):
+    type = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.type
+
+# eventually https://python-jsonschema.readthedocs.io/en/stable/ should be implemented
+# TODO override create/save function to check against Specimen/Event
+
+class ScheduleModel(models.Model):
+    name = models.CharField(max_length=255)
+    schedule = JSONField()
+
+    def __str__(self):
+        return self.name
+
+# Storage related models
 class BoxSlotModel(models.Model):
     """
         Slot in a box model
@@ -109,10 +137,16 @@ class SourceModel(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     modify_date = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name
+
+
+
 
 class PatientModel(models.Model):
     pid = models.CharField(unique=True, max_length=10)
     external_id = models.CharField(null=True, blank=True, max_length=40)
+    draw_schedule = models.ForeignKey('ScheduleModel', null=True, blank=True, on_delete=models.SET_NULL)
     source = models.ForeignKey('SourceModel', on_delete=models.CASCADE, default=1)
     synced = models.BooleanField(default=False)
     sync_date = models.DateTimeField(blank=True, null=True)
@@ -126,22 +160,18 @@ class PatientModel(models.Model):
     Override default save:
     When the patient is created via an external system, automatically set the
     sync_date to the current time as it is automatically reconciled/synced
+
+    Otherwise if patient already exists set sync and exit
     """
 
     def save(self, *args, **kwargs):
-        # if sync is set to true, set the time the sync occured
+        # if
         if self.synced is True:
             self.sync_date = datetime.now()
 
         # call original save method
         super().save(*args, **kwargs)
 
-
-class SpecimenType(models.Model):
-    type = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.type
 
 
 class SpecimenModel(models.Model):
