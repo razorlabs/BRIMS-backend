@@ -6,13 +6,15 @@ from datetime import datetime
 
 """
     Note: Many of the field types are postgres specific
-    Please reference: https://docs.djangoproject.com/en/2.2/ref/contrib/postgres/fields/
+    Please reference:
+    https://docs.djangoproject.com/en/2.2/ref/contrib/postgres/fields/
 """
+
 
 class CustomUser(AbstractUser):
     """
         Custom user stub in case of future user customization need
-        Special thanks to wsvincent (and associated tutorial)
+        Special thanks to WSVincent (and associated tutorial)
     """
     pass
 
@@ -184,6 +186,7 @@ class SpecimenModel(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     modify_date = models.DateTimeField(auto_now=True)
     volume = models.FloatField()
+    notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return("{patient} {type}".format(patient=self.patient.pid, type=self.type))
