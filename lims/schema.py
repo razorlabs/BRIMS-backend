@@ -6,11 +6,13 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel
+from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel, SpecimenType
+
 
 class UserType(DjangoObjectType):
     class Meta:
         model = get_user_model()
+
 
 class PatientType(DjangoObjectType):
     source = graphene.String()
@@ -20,28 +22,43 @@ class PatientType(DjangoObjectType):
     def resolve_source(self, info):
         return '{}'.format(self.source.name)
 
+
 class Box(DjangoObjectType):
     class Meta:
         model = BoxModel
+
 
 class BoxType(DjangoObjectType):
     class Meta:
         model = BoxTypeModel
 
+
 class BoxSlotType(DjangoObjectType):
     class Meta:
         model = BoxSlotModel
 
+
 class EventType(DjangoObjectType):
     class Meta:
         model = EventModel
+
 
 class ScheduleType(DjangoObjectType):
     class Meta:
         model = ScheduleModel
 
 
-class SpecimenType(DjangoObjectType):
+class SpecimenTypeModelType(DjangoObjectType):
+    """
+        Ugh I hate the name of this
+        Various "types" of specimen"
+    """
+
+    class Meta:
+        model = SpecimenType
+
+
+class SpecimenModelType(DjangoObjectType):
     """
         type: returns the specimen type
         patientid: returns "PID" or the patient string used for study tracking
@@ -131,6 +148,68 @@ class CreateEventMutation(graphene.Mutation):
             order=event_input.order,
         )
 
+
+class CreateSpecimenMutation(graphene.Mutation):
+    """
+    Allows creation of a specimen from web UI or external source
+    Arguments:
+    patient: the ID of the patient associated with the specimen
+    type: the specimen type
+    volume: amount drawn
+    collect_date: the date of collection
+    collect_time: the time of collection
+    notes: Any additional notes to associate with the specimen
+
+    """
+
+    id = graphene.Int()
+    patient = graphene.Int()
+    specimentype = graphene.String()
+    volume = graphene.Float()
+    specimentype = graphene.String()
+    collectdate = graphene.types.datetime.Date()
+    collecttime = graphene.types.datetime.Time()
+    notes = graphene.String()
+
+    class Arguments:
+        patient = graphene.Int()
+        volume = graphene.Float()
+        specimentype = graphene.String()
+        collectdate = graphene.types.datetime.Date()
+        collecttime = graphene.types.datetime.Time()
+        notes = graphene.String()
+
+
+    def mutate(self, info, **kwargs):
+        patient = kwargs.get('patient', None)
+        specimentype = kwargs.get('specimentype', None)
+        patient_object = PatientModel.objects.get(id=patient)
+        specimen_type_object = SpecimenType.objects.get(type=specimentype)
+        volume = kwargs.get('volume', None)
+        collectdate = kwargs.get('collectdate', None)
+        collecttime = kwargs.get('collecttime', None)
+        notes = kwargs.get('notes', None)
+
+        specimen_input = SpecimenModel(
+            patient=patient_object,
+            type=specimen_type_object,
+            volume=volume,
+            collectdate=collectdate,
+            collecttime=collecttime,
+            notes=notes
+        )
+        specimen_input.save()
+
+        return CreateSpecimenMutation(
+            id=specimen_input.id,
+            specimentype=specimen_input.type,
+            volume=specimen_input.volume,
+            collectdate=specimen_input.collectdate,
+            collecttime=specimen_input.collecttime,
+            notes=specimen_input.notes,
+        )
+
+
 class CreatePatientMutation(graphene.Mutation):
     """
     Allows creation of a patient from web UI or external source
@@ -174,10 +253,13 @@ class CreatePatientMutation(graphene.Mutation):
         )
 
 class CreatePatientAPIMutation(graphene.Mutation):
+    """
+        Create a patient from an external source via the API
+    """
+
     id = graphene.Int()
     pid = graphene.String()
     external_id = graphene.String()
-    # Was the patient created in the local system or
     source = graphene.String()
     synced = graphene.Boolean()
 
@@ -210,6 +292,7 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_jwt.Refresh.Field()
     create_patient = CreatePatientMutation.Field()
     create_patient_api = CreatePatientAPIMutation.Field()
+    create_specimen = CreateSpecimenMutation.Field()
     create_user = CreateUser.Field()
     create_event = CreateEventMutation.Field()
 
@@ -219,12 +302,14 @@ class Query(graphene.ObjectType):
     # (underscores end up camelCase for graphql spec)
     me = graphene.Field(UserType)
     users = graphene.List(UserType)
+    search_specimen = graphene.List(PatientType, patient=graphene.String())
     all_boxes = graphene.List(Box)
+    all_specimen_types = graphene.List(SpecimenTypeModelType)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
     all_schedules = graphene.List(ScheduleType)
     all_patients = graphene.List(PatientType)
     all_events = graphene.List(EventType)
-    all_specimen = graphene.List(SpecimenType, patient=graphene.Int())
+    all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
     box_type = graphene.Field(BoxType, id=graphene.Int())
     patient = graphene.Field(PatientType,
@@ -232,6 +317,16 @@ class Query(graphene.ObjectType):
                              pid=graphene.String(),
                              external_id=graphene.String())
     box = graphene.Field(Box, id=graphene.Int())
+
+    def resolve_search_specimen(self, info, **kwargs):
+        """ for testing, to be deprecated for resolve_patient """
+        patient = kwargs.get('patient')
+
+        if patient is not None:
+            return PatientModel.objects.filter(pid__contains=patient)
+
+        return None
+
 
     def resolve_users(self, info):
         return get_user_model().objects.all()
@@ -242,6 +337,9 @@ class Query(graphene.ObjectType):
             raise Exception('Not logged in!')
 
         return user
+
+    def resolve_all_specimen_types(self, info, **kwargs):
+        return SpecimenType.objects.all()
 
     def resolve_all_boxes(self, info, **kwargs):
         return BoxModel.objects.all()
