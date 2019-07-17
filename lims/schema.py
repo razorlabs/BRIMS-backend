@@ -6,7 +6,7 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel, SpecimenType
+from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel, SpecimenType, VisitModel, AliquotType
 
 
 class UserType(DjangoObjectType):
@@ -86,7 +86,7 @@ class SpecimenModelType(DjangoObjectType):
 
 
 
-class AliquotType(DjangoObjectType):
+class AliquotModelType(DjangoObjectType):
     visit = graphene.String()
     type = graphene.String()
     specimenid = graphene.Int()
@@ -148,6 +148,71 @@ class CreateEventMutation(graphene.Mutation):
             order=event_input.order,
         )
 
+class CreateAliquotMutation(graphene.Mutation):
+    """
+    Allows creation of an aliquot from web UI or external source
+    """
+    id = graphene.Int()
+    specimenid = graphene.Int()
+    specimen = graphene.String()
+    aliquottype = graphene.Int()
+    visit = graphene.Int()
+    collectdate = graphene.types.datetime.Date()
+    collecttime = graphene.types.datetime.Time()
+    volume = graphene.Float()
+    notes = graphene.String()
+    times = graphene.Int()
+
+    class Arguments:
+        specimenid = graphene.Int()
+        aliquottype = graphene.Int()
+        visit = graphene.Int()
+        collectdate = graphene.types.datetime.Date()
+        collecttime = graphene.types.datetime.Time()
+        volume = graphene.Float()
+        notes = graphene.String()
+        times = graphene.Int()
+
+    def mutate(self, info, **kwargs):
+        times = kwargs.get('times', None)
+        specimenid = kwargs.get('specimenid', None)
+        aliquottype = kwargs.get('aliquottype', None)
+        visit = kwargs.get('visit', None)
+        specimen_object = SpecimenModel.objects.get(id=specimenid)
+        aliquot_type_object = AliquotType.objects.get(id=aliquottype)
+        visit_object = VisitModel.objects.get(id=visit)
+        collectdate = kwargs.get('collectdate', None)
+        collecttime = kwargs.get('collecttime', None)
+        volume = kwargs.get('volume', None)
+        notes = kwargs.get('notes', None)
+
+        aliquot_input = AliquotModel(
+            specimen=specimen_object,
+            type=aliquot_type_object,
+            visit=visit_object,
+            collectdate=collectdate,
+            collecttime=collecttime,
+            volume=volume,
+            notes=notes
+        )
+
+        for _ in range(times):
+            # setting pk to None allows creation of multiple objects
+            aliquot_input.pk = None
+            aliquot_input.save()
+
+        return CreateAliquotMutation(
+            id=aliquot_input.id,
+            specimen=aliquot_input.specimen,
+            aliquottype=aliquot_input.type.id,
+            visit=aliquot_input.visit.id,
+            collectdate=aliquot_input.collectdate,
+            collecttime=aliquot_input.collecttime,
+            volume=aliquot_input.volume,
+            notes=aliquot_input.notes,
+        )
+
+
 
 class CreateSpecimenMutation(graphene.Mutation):
     """
@@ -164,7 +229,7 @@ class CreateSpecimenMutation(graphene.Mutation):
 
     id = graphene.Int()
     patient = graphene.Int()
-    specimentype = graphene.String()
+    specimentype = graphene.Int()
     volume = graphene.Float()
     specimentype = graphene.String()
     collectdate = graphene.types.datetime.Date()
@@ -173,8 +238,8 @@ class CreateSpecimenMutation(graphene.Mutation):
 
     class Arguments:
         patient = graphene.Int()
+        specimentype = graphene.Int()
         volume = graphene.Float()
-        specimentype = graphene.String()
         collectdate = graphene.types.datetime.Date()
         collecttime = graphene.types.datetime.Time()
         notes = graphene.String()
@@ -184,7 +249,7 @@ class CreateSpecimenMutation(graphene.Mutation):
         patient = kwargs.get('patient', None)
         specimentype = kwargs.get('specimentype', None)
         patient_object = PatientModel.objects.get(id=patient)
-        specimen_type_object = SpecimenType.objects.get(type=specimentype)
+        specimen_type_object = SpecimenType.objects.get(id=specimentype)
         volume = kwargs.get('volume', None)
         collectdate = kwargs.get('collectdate', None)
         collecttime = kwargs.get('collecttime', None)
@@ -293,6 +358,7 @@ class Mutation(graphene.ObjectType):
     create_patient = CreatePatientMutation.Field()
     create_patient_api = CreatePatientAPIMutation.Field()
     create_specimen = CreateSpecimenMutation.Field()
+    create_aliquot = CreateAliquotMutation.Field()
     create_user = CreateUser.Field()
     create_event = CreateEventMutation.Field()
 
@@ -310,7 +376,7 @@ class Query(graphene.ObjectType):
     all_patients = graphene.List(PatientType)
     all_events = graphene.List(EventType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
-    all_aliquot = graphene.List(AliquotType, specimen=graphene.Int())
+    all_aliquot = graphene.List(AliquotModelType, specimen=graphene.Int())
     box_type = graphene.Field(BoxType, id=graphene.Int())
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
