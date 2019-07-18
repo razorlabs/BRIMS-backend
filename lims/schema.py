@@ -9,6 +9,18 @@ from django.contrib.auth import get_user_model
 from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel, SpecimenType, VisitModel, AliquotType
 
 
+# TODO return list of ids from aliquot mutation
+# https://stackoverflow.com/questions/51762817/get-query-to-return-list-of-values-instead-of-objects-in-graphene-django
+class AliquotIdList(DjangoObjectType):
+    id_list = graphene.List(graphene.Int)
+
+    class Meta:
+        model = AliquotModel
+
+    def resolve_id_list(self, info):
+        return [aliquot.id for aliquot in self.aliquot]
+
+
 class UserType(DjangoObjectType):
     class Meta:
         model = get_user_model()
