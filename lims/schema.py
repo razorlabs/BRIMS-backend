@@ -34,6 +34,10 @@ class PatientType(DjangoObjectType):
     def resolve_source(self, info):
         return '{}'.format(self.source.name)
 
+class VisitType(DjangoObjectType):
+    class Meta:
+        model = VisitModel
+
 
 class Box(DjangoObjectType):
     class Meta:
@@ -63,11 +67,22 @@ class ScheduleType(DjangoObjectType):
 class SpecimenTypeModelType(DjangoObjectType):
     """
         Ugh I hate the name of this
-        Various "types" of specimen"
+        Various "types" of specimen
     """
 
     class Meta:
         model = SpecimenType
+
+
+class AliquotTypeModelType(DjangoObjectType):
+    """
+        Hate the name here too
+        Various "types" of aliquot
+    """
+
+    class Meta:
+        model = AliquotType
+
 
 
 class SpecimenModelType(DjangoObjectType):
@@ -383,10 +398,12 @@ class Query(graphene.ObjectType):
     search_specimen = graphene.List(PatientType, patient=graphene.String())
     all_boxes = graphene.List(Box)
     all_specimen_types = graphene.List(SpecimenTypeModelType)
+    all_aliquot_types = graphene.List(AliquotTypeModelType)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
     all_schedules = graphene.List(ScheduleType)
     all_patients = graphene.List(PatientType)
     all_events = graphene.List(EventType)
+    all_visits = graphene.List(VisitType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotModelType, specimen=graphene.Int())
     box_type = graphene.Field(BoxType, id=graphene.Int())
@@ -418,6 +435,13 @@ class Query(graphene.ObjectType):
 
     def resolve_all_specimen_types(self, info, **kwargs):
         return SpecimenType.objects.all()
+
+    def resolve_all_visits(self, info):
+        return VisitModel.objects.all()
+
+    # will need to adjust model/object to make specimen type parent
+    def resolve_all_aliquot_types(self, info, **kwargs):
+        return AliquotType.objects.all()
 
     def resolve_all_boxes(self, info, **kwargs):
         return BoxModel.objects.all()
