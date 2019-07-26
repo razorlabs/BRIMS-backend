@@ -167,12 +167,23 @@ class PatientModel(models.Model):
     """
 
     def save(self, *args, **kwargs):
-        # if
-        if self.synced is True:
-            self.sync_date = datetime.now()
+        # If patient was not created locally, check if patient already exists
+        local_source = SourceModel.objects.get(name="local")
+        if self.source == local_source:
+            super().save(*args, **kwargs)
+        if self.source != local_source:
+            patient_exists = PatientModel.objects.filter(pid=self.pid)
+            if(patient_exists.exists()):
+                if(patient_exists.values("synced")[0]["synced"] is False):
+                    patient_exists.update(
+                        synced=True,
+                        sync_date=datetime.now(),
+                        source=self.source)
+            else:
+                self.synced=True
+                self.sync_date=datetime.now()
+                super().save(*args, **kwargs)
 
-        # call original save method
-        super().save(*args, **kwargs)
 
 
 
