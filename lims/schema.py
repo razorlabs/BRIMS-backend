@@ -314,6 +314,7 @@ class CreatePatientMutation(graphene.Mutation):
     """
     id = graphene.Int()
     pid = graphene.String()
+    drawschedule = graphene.Int()
     external_id = graphene.String()
     source = graphene.String()
     synced = graphene.Boolean()
@@ -321,60 +322,30 @@ class CreatePatientMutation(graphene.Mutation):
     class Arguments:
         pid = graphene.String()
         external_id = graphene.String()
+        drawschedule = graphene.Int()
         source = graphene.String()
         synced = graphene.Boolean()
 
     def mutate(self, info, pid, **kwargs):
         external_id = kwargs.get('external_id', None)
+        drawschedule = kwargs.get('drawschedule', None)
         source = kwargs.get('source', 1)
         synced = kwargs.get('synced', False)
 
         patient_input = PatientModel(
             pid=pid,
             external_id=external_id,
-            source=source,
+            draw_schedule=ScheduleModel.objects.get(id=drawschedule),
+            source=SourceModel.objects.get(id=source),
             synced=synced)
         patient_input.save()
 
         return CreatePatientMutation(
             id=patient_input.id,
             pid=patient_input.pid,
+            drawschedule=patient_input.draw_schedule,
             external_id=patient_input.external_id,
             source=patient_input.source,
-            synced=patient_input.synced,
-        )
-
-class CreatePatientAPIMutation(graphene.Mutation):
-    """
-        Create a patient from an external source via the API
-    """
-
-    id = graphene.Int()
-    pid = graphene.String()
-    external_id = graphene.String()
-    source = graphene.String()
-    synced = graphene.Boolean()
-
-    class Arguments:
-        pid = graphene.String()
-        external_id = graphene.String()
-        source = graphene.String()
-        synced = graphene.Boolean()
-
-    def mutate(self, info, pid, **kwargs):
-        external_id = kwargs.get('external_id', None)
-        synced = kwargs.get('synced', True)
-
-        patient_input = PatientModel(
-            pid=pid,
-            external_id=external_id,
-            synced=synced)
-        patient_input.save()
-
-        return CreatePatientMutation(
-            id=patient_input.id,
-            pid=patient_input.pid,
-            external_id=patient_input.external_id,
             synced=patient_input.synced,
         )
 
@@ -383,7 +354,6 @@ class Mutation(graphene.ObjectType):
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
     create_patient = CreatePatientMutation.Field()
-    create_patient_api = CreatePatientAPIMutation.Field()
     create_specimen = CreateSpecimenMutation.Field()
     create_aliquot = CreateAliquotMutation.Field()
     create_user = CreateUser.Field()
