@@ -316,14 +316,14 @@ class CreatePatientMutation(graphene.Mutation):
     pid = graphene.String()
     drawschedule = graphene.Int()
     external_id = graphene.String()
-    source = graphene.String()
+    source = graphene.Int()
     synced = graphene.Boolean()
 
     class Arguments:
         pid = graphene.String()
         external_id = graphene.String()
         drawschedule = graphene.Int()
-        source = graphene.String()
+        source = graphene.Int()
         synced = graphene.Boolean()
 
     def mutate(self, info, pid, **kwargs):
@@ -332,10 +332,15 @@ class CreatePatientMutation(graphene.Mutation):
         source = kwargs.get('source', 1)
         synced = kwargs.get('synced', False)
 
+        if drawschedule is not None:
+            drawinput = ScheduleModel.objects.get(id=drawschedule)
+        else:
+            drawinput = None
+
         patient_input = PatientModel(
             pid=pid,
             external_id=external_id,
-            draw_schedule=ScheduleModel.objects.get(id=drawschedule),
+            draw_schedule=drawinput,
             source=SourceModel.objects.get(id=source),
             synced=synced)
         patient_input.save()
