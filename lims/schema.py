@@ -376,7 +376,7 @@ class Query(graphene.ObjectType):
     all_aliquot_types = graphene.List(AliquotTypeModelType)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
     all_schedules = graphene.List(ScheduleType)
-    all_patients = graphene.List(PatientType)
+    all_patients = graphene.List(PatientType, first=graphene.Int(), skip=graphene.Int())
     all_events = graphene.List(EventType)
     all_visits = graphene.List(VisitType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
@@ -459,8 +459,16 @@ class Query(graphene.ObjectType):
         if id is not None:
             return BoxSlotModel.objects.all()
 
-    def resolve_all_patients(self, info, **kwargs):
-        return PatientModel.objects.all()
+    def resolve_all_patients(self, info, first=None, skip=None, **kwargs):
+        patient_data = PatientModel.objects.all()
+
+        if skip:
+            patient_data = patient_data[skip:]
+
+        if first:
+            patient_data = patient_data[:first]
+
+        return patient_data
 
     def resolve_all_specimen(self, info, **kwargs):
         patient = kwargs.get('patient')
