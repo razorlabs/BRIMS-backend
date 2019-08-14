@@ -460,7 +460,7 @@ class Query(graphene.ObjectType):
             return BoxSlotModel.objects.all()
 
     def resolve_all_patients(self, info, first=None, skip=None, **kwargs):
-        patient_data = PatientModel.objects.all()
+        patient_data = PatientModel.objects.all().order_by('-pk')
 
         if skip:
             patient_data = patient_data[skip:]
