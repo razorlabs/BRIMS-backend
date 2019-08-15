@@ -53,11 +53,11 @@ class ScheduleModel(models.Model):
 
 class ShipmentModel(models.Model):
     contents = models.ManyToManyField('AliquotModel')
-    courier = models.ForeignKey('CourierModel',
+    carrier = models.ForeignKey('CarrierModel',
                                 on_delete=models.SET_NULL,
                                 blank=True,
                                 null=True)
-    courier_number = models.CharField(max_length=255, blank=True, null=True)
+    shipment_number = models.CharField(max_length=255, blank=True, null=True)
     # TODO What should we do if a destination is removed?
     destination = models.ForeignKey('DestinationModel',
                                     on_delete=models.SET_NULL,
@@ -74,7 +74,7 @@ class DestinationModel(models.Model):
         return self.name
 
 
-class CourierModel(models.Model):
+class CarrierModel(models.Model):
     name = models.CharField(max_length=255)
 
     def __str__(self):
