@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class BoxSlotModel(models.Model):
     """
         Slot in a box model
@@ -16,6 +17,7 @@ class BoxSlotModel(models.Model):
 #
     # write save method that checks position of box
 
+
 class BoxModel(models.Model):
     """
         Indivdual instance of a box
@@ -28,7 +30,7 @@ class BoxModel(models.Model):
 
 class BoxTypeModel(models.Model):
     """
-        Describes box meta data
+        Describes box metadata (height/length/width/label etc)
     """
 
     numbered = 'numeric'
@@ -56,6 +58,11 @@ class BoxTypeModel(models.Model):
 
 
 class StorageModel(models.Model):
+    """
+       Storage objects can be contained in other storage objects ex) box, shelf
+       Parent points to the object a storage instance is contained in.
+       A blank parent represents a "top" object ex) building
+    """
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)
     parent = models.ForeignKey(
@@ -63,5 +70,12 @@ class StorageModel(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL)
+    """
+        css_icon should be equivalent to a css icon class to represent
+        the storage object ex) warehouse (for semanitic-ui warehouse icon)
+        https://react.semantic-ui.com/elements/icon/ (a port of font-awesome 5)
+    """
+    css_icon = models.CharField(max_length=50)
 
-
+    def __str__(self):
+        return str(self.name)
