@@ -75,7 +75,7 @@ class StorageModel(models.Model):
         the storage object ex) warehouse (for semanitic-ui warehouse icon)
         https://react.semantic-ui.com/elements/icon/ (a port of font-awesome 5)
     """
-    css_icon = models.CharField(max_length=50)
+    css_icon = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return str(self.name)
