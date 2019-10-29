@@ -6,7 +6,12 @@ from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.contrib.auth import get_user_model
 
-from .models import PatientModel, SpecimenModel, AliquotModel, BoxModel, BoxTypeModel, BoxSlotModel, EventModel, ScheduleModel, SourceModel, SpecimenType, VisitModel, AliquotType
+from lims.models.user import *
+from lims.models.schedule import *
+from lims.models.shipping import *
+from lims.models.storage import *
+from lims.models.patient import *
+from lims.models.specimen import *
 
 
 # TODO return list of ids from aliquot mutation

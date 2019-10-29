@@ -3,7 +3,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import CustomUser, PatientModel, SpecimenModel, SpecimenType, AliquotModel, AliquotType, VisitModel, SourceModel, StorageModel, BoxTypeModel, BoxSlotModel, BoxModel, EventModel, ScheduleModel, CarrierModel, DestinationModel, ShipmentModel
+from lims.models.user import CustomUser
+from lims.models.schedule import *
+from lims.models.shipping import *
+from lims.models.storage import *
+from lims.models.patient import *
+from lims.models.specimen import *
+
 
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
@@ -11,20 +17,16 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
     list_display = ['email', 'username', ]
 
+schedule_models = [EventModel, SpecimenType, ScheduleModel]
+specimen_models = [SpecimenModel, AliquotType, AliquotModel]
+patient_models = [VisitModel, SourceModel, PatientModel]
+storage_models = [BoxSlotModel, BoxModel, BoxTypeModel, StorageModel]
+shipping_models = [ShipmentModel, DestinationModel, CarrierModel]
+
+# user model
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(EventModel)
-admin.site.register(PatientModel)
-admin.site.register(SpecimenModel)
-admin.site.register(SpecimenType)
-admin.site.register(AliquotModel)
-admin.site.register(AliquotType)
-admin.site.register(VisitModel)
-admin.site.register(SourceModel)
-admin.site.register(StorageModel)
-admin.site.register(BoxTypeModel)
-admin.site.register(BoxModel)
-admin.site.register(BoxSlotModel)
-admin.site.register(ScheduleModel)
-admin.site.register(CarrierModel)
-admin.site.register(DestinationModel)
-admin.site.register(ShipmentModel)
+admin.site.register(schedule_models)
+admin.site.register(patient_models)
+admin.site.register(specimen_models)
+admin.site.register(storage_models)
+admin.site.register(shipping_models)
