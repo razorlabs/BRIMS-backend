@@ -14,6 +14,15 @@ from lims.models.patient import *
 from lims.models.specimen import *
 
 
+class StorageType(DjangoObjectType):
+    class Meta:
+        model = StorageModel
+
+class StorageAccordianViewType(DjangoObjectType):
+    class Meta:
+        model = StorageModel
+
+
 # TODO return list of ids from aliquot mutation
 # https://stackoverflow.com/questions/51762817/get-query-to-return-list-of-values-instead-of-objects-in-graphene-django
 class AliquotIdList(DjangoObjectType):
@@ -386,12 +395,16 @@ class Query(graphene.ObjectType):
     all_visits = graphene.List(VisitType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotModelType, specimen=graphene.Int())
+    # type
     box_type = graphene.Field(BoxType, id=graphene.Int())
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
                              pid=graphene.String(),
                              external_id=graphene.String())
     box = graphene.Field(Box, id=graphene.Int())
+
+    def resolve_storage_json(self, info):
+        return None
 
     def resolve_search_specimen(self, info, **kwargs):
         """ for testing, to be deprecated for resolve_patient """
@@ -444,6 +457,8 @@ class Query(graphene.ObjectType):
         box = BoxModel.objects.get(id=id)
         # this can be editable in the future
         content_entry = "{patient} {aliquot} {aliquot_id}"
+        box_json["name"] = box.name
+        box_json["description"] = box.description
         # builds json object for ingestion by cell table in react
         # row goes first as JS is stuck with a for loop starting with row
         for slot in box.boxslotmodel_set.all():
