@@ -13,10 +13,28 @@ from lims.models.storage import *
 from lims.models.patient import *
 from lims.models.specimen import *
 
+class Box(DjangoObjectType):
+    class Meta:
+        model = BoxModel
+
+class BoxType(DjangoObjectType):
+    class Meta:
+        model = BoxTypeModel
+
+class BoxSlotType(DjangoObjectType):
+    class Meta:
+        model = BoxSlotModel
 
 class StorageType(DjangoObjectType):
     class Meta:
         model = StorageModel
+
+class StorageUI(graphene.ObjectType):
+    key = graphene.String()
+    title = graphene.String()
+    content = graphene.List(StorageType)
+    boxes = graphene.List(Box)
+    css_icon = graphene.String()
 
 class StorageAccordianViewType(DjangoObjectType):
     class Meta:
@@ -52,20 +70,6 @@ class VisitType(DjangoObjectType):
     class Meta:
         model = VisitModel
 
-
-class Box(DjangoObjectType):
-    class Meta:
-        model = BoxModel
-
-
-class BoxType(DjangoObjectType):
-    class Meta:
-        model = BoxTypeModel
-
-
-class BoxSlotType(DjangoObjectType):
-    class Meta:
-        model = BoxSlotModel
 
 
 class EventType(DjangoObjectType):
@@ -395,6 +399,7 @@ class Query(graphene.ObjectType):
     all_visits = graphene.List(VisitType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotModelType, specimen=graphene.Int())
+    storage_ui = graphene.List(StorageUI)
     # type
     box_type = graphene.Field(BoxType, id=graphene.Int())
     patient = graphene.Field(PatientType,
@@ -402,6 +407,46 @@ class Query(graphene.ObjectType):
                              pid=graphene.String(),
                              external_id=graphene.String())
     box = graphene.Field(Box, id=graphene.Int())
+
+    def resolve_storage_ui(self, info):
+        """
+            StorageUI objects reflect StorageModel parent/child relationships
+
+            The objecttype (StorageUI) is specifically constructed to make
+            semantic-ui accordion building easier
+            see: https://react.semantic-ui.com/modules/accordion/#advanced-nested
+
+            key: reflects the accordion key (from storage object name)
+            title: title for accordion title (from storage object description)
+            content: Does this storage object contain other storage objects?
+            (storage objects only store parent, children will be added if
+            necessary or convenient)
+            boxes: Does this storage object contain any boxes?
+            css_icon: what icon should be displayed with this box?
+
+            The frontend portion handles the inner display rendering as I am
+            a firm believer in seperation of interests. Front end should handle
+            front end UI problems. Backend should provide the data needed.
+            I know the css_icon is an exception here, but that is a persistent
+            piece of data.
+
+            Also storing html in a db model seems like a bad idea in general
+        """
+        storage_return = []
+
+        all_storage_objects = StorageModel.objects.all()
+        for location in all_storage_objects:
+            content = StorageModel.objects.filter(parent=location.id)
+            boxes_at_location = BoxModel.objects.filter(storage_location=location.id)
+            append_storage = StorageUI(key=("panel-" + location.name),
+                                       title=location.name,
+                                       content=content,
+                                       boxes=boxes_at_location,
+                                       css_icon=location.css_icon)
+            storage_return.append(append_storage)
+
+
+        return storage_return
 
     def resolve_storage_json(self, info):
         return None
