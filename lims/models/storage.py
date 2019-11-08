@@ -1,5 +1,28 @@
 from django.db import models
 
+# TODO make delete set parent name to overhead child
+class StorageModel(models.Model):
+    """
+       Storage objects can be contained in other storage objects ex) box, shelf
+       Parent points to the object a storage instance is contained in.
+       A blank parent represents a "top" object ex) building
+    """
+    name = models.CharField(max_length=50)
+    description = models.CharField(max_length=200)
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL)
+    """
+        css_icon should be equivalent to a css icon class to represent
+        the storage object ex) warehouse (for semanitic-ui warehouse icon)
+        https://react.semantic-ui.com/elements/icon/ (a port of font-awesome 5)
+    """
+    css_icon = models.CharField(max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return str(self.name)
 
 class BoxSlotModel(models.Model):
     """
@@ -24,8 +47,16 @@ class BoxModel(models.Model):
     """
 
     name = models.CharField(max_length=50)
-    decription = models.CharField(max_length=255, blank=True, null=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
     box_type = models.ForeignKey('BoxTypeModel', on_delete=models.CASCADE)
+    #TODO set storage location to parent on delete
+    storage_location = models.ForeignKey('StorageModel',
+                                         on_delete=models.SET_NULL,
+                                         blank=True,
+                                         null=True)
+
+    def __str__(self):
+        return str(self.name)
 
 
 class BoxTypeModel(models.Model):
@@ -53,29 +84,3 @@ class BoxTypeModel(models.Model):
         default=numbered)
     length_inverted = models.BooleanField(default=False)
     height_inverted = models.BooleanField(default=False)
-
-# make delete set parent name to overhead child
-
-
-class StorageModel(models.Model):
-    """
-       Storage objects can be contained in other storage objects ex) box, shelf
-       Parent points to the object a storage instance is contained in.
-       A blank parent represents a "top" object ex) building
-    """
-    name = models.CharField(max_length=50)
-    description = models.CharField(max_length=200)
-    parent = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL)
-    """
-        css_icon should be equivalent to a css icon class to represent
-        the storage object ex) warehouse (for semanitic-ui warehouse icon)
-        https://react.semantic-ui.com/elements/icon/ (a port of font-awesome 5)
-    """
-    css_icon = models.CharField(max_length=50, null=True, blank=True)
-
-    def __str__(self):
-        return str(self.name)
