@@ -35,6 +35,7 @@ class StorageUI(graphene.ObjectType):
     content = graphene.List(StorageType)
     boxes = graphene.List(Box)
     css_icon = graphene.String()
+    top_level = graphene.Boolean()
 
 class StorageAccordianViewType(DjangoObjectType):
     class Meta:
@@ -423,6 +424,7 @@ class Query(graphene.ObjectType):
             necessary or convenient)
             boxes: Does this storage object contain any boxes?
             css_icon: what icon should be displayed with this box?
+            top_level: is the object a "top level" (no parent) object
 
             The frontend portion handles the inner display rendering as I am
             a firm believer in seperation of interests. Front end should handle
@@ -438,12 +440,18 @@ class Query(graphene.ObjectType):
         for location in all_storage_objects:
             content = StorageModel.objects.filter(parent=location.id)
             boxes_at_location = BoxModel.objects.filter(storage_location=location.id)
+            if location.parent is None:
+                top_level = True
+            else:
+                top_level = False
             append_storage = StorageUI(key=("panel-" + location.name),
                                        title=location.name,
                                        content=content,
                                        boxes=boxes_at_location,
-                                       css_icon=location.css_icon)
+                                       css_icon=location.css_icon,
+                                       top_level=top_level)
             storage_return.append(append_storage)
+
 
 
         return storage_return
