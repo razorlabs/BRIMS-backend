@@ -13,6 +13,11 @@ from lims.models.storage import *
 from lims.models.patient import *
 from lims.models.specimen import *
 
+"""
+    .get is used on dictionary pull from kwargs allowing for a default value
+    to be set during mutation. It is used elsewhere for consistency.
+"""
+
 class Box(DjangoObjectType):
     class Meta:
         model = BoxModel
@@ -36,10 +41,6 @@ class StorageUI(graphene.ObjectType):
     boxes = graphene.List(Box)
     css_icon = graphene.String()
     top_level = graphene.Boolean()
-
-class StorageAccordianViewType(DjangoObjectType):
-    class Meta:
-        model = StorageModel
 
 
 # TODO return list of ids from aliquot mutation
@@ -148,6 +149,46 @@ class AliquotModelType(DjangoObjectType):
     def resolve_type(self, info):
         return '{}'.format(self.type.type)
 
+class CreateStorageMutation(graphene.Mutation):
+    id = graphene.Int()
+    name = graphene.String()
+    description = graphene.String()
+    parent = graphene.Int()
+    css_icon = graphene.String()
+
+
+    class Arguments:
+        name = graphene.String(required=True)
+        description = graphene.String(required=True)
+        parent = graphene.Int()
+        css_icon = graphene.String()
+
+    def mutate(self, info, **kwargs):
+        name = kwargs.get('name', None)
+        description = kwargs.get('description', None)
+        parent = kwargs.get('parent', None)
+        css_icon = kwags.get('css_icon', None)
+
+        if parent is not None:
+            parent = StorageModel.objects.get(id=parent)
+        else:
+            parent = None
+
+        storage_input = StorageModel(
+            name=name,
+            description=description,
+            parent=parent,
+            css_icon=css_icon)
+        storage_input.save()
+
+        return CreateStorageMutation(
+            id=storage_input.id,
+            name=storage_input.name,
+            description=storage_input.description,
+            parent=storage_input.parent,
+            css_icon=storage_input.css_icon,
+        )
+
 
 class CreateUser(graphene.Mutation):
     user = graphene.Field(UserType)
@@ -182,7 +223,6 @@ class CreateEventMutation(graphene.Mutation):
         order = graphene.Int()
 
     def mutate(self, info, event, order):
-
         event_input = EventModel(
             event=event,
             order=order
@@ -382,6 +422,7 @@ class Mutation(graphene.ObjectType):
     create_aliquot = CreateAliquotMutation.Field()
     create_user = CreateUser.Field()
     create_event = CreateEventMutation.Field()
+    create_storage = CreateStorageMutation.Field()
 
 
 class Query(graphene.ObjectType):
