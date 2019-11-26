@@ -4,12 +4,12 @@ from django.db import models
 class StorageModel(models.Model):
     """
        Storage objects can be contained in other storage objects ex) box, shelf
-       Parent points to the object a storage instance is contained in.
-       A blank parent represents a "top" object ex) building
+       Container points to the object a storage instance is contained in.
+       A blank container represents a "top" object ex) building
     """
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)
-    parent = models.ForeignKey(
+    container = models.ForeignKey(
         'self',
         null=True,
         blank=True,

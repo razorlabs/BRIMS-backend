@@ -153,31 +153,31 @@ class CreateStorageMutation(graphene.Mutation):
     id = graphene.Int()
     name = graphene.String()
     description = graphene.String()
-    parent = graphene.Int()
+    container = graphene.Int()
     css_icon = graphene.String()
 
 
     class Arguments:
         name = graphene.String(required=True)
         description = graphene.String(required=True)
-        parent = graphene.Int()
+        container = graphene.Int()
         css_icon = graphene.String()
 
     def mutate(self, info, **kwargs):
         name = kwargs.get('name', None)
         description = kwargs.get('description', None)
-        parent = kwargs.get('parent', None)
-        css_icon = kwags.get('css_icon', None)
+        container = kwargs.get('container', None)
+        css_icon = kwargs.get('css_icon', None)
 
-        if parent is not None:
-            parent = StorageModel.objects.get(id=parent)
+        if container is not None:
+            container = StorageModel.objects.get(id=container)
         else:
-            parent = None
+            container = None
 
         storage_input = StorageModel(
             name=name,
             description=description,
-            parent=parent,
+            parent=container,
             css_icon=css_icon)
         storage_input.save()
 
@@ -185,7 +185,7 @@ class CreateStorageMutation(graphene.Mutation):
             id=storage_input.id,
             name=storage_input.name,
             description=storage_input.description,
-            parent=storage_input.parent,
+            container=storage_input.parent,
             css_icon=storage_input.css_icon,
         )
 
@@ -441,6 +441,8 @@ class Query(graphene.ObjectType):
     all_visits = graphene.List(VisitType)
     all_specimen = graphene.List(SpecimenModelType, patient=graphene.Int())
     all_aliquot = graphene.List(AliquotModelType, specimen=graphene.Int())
+    all_storage = graphene.List(StorageType)
+    # returns data specifically geared towards UI construction
     storage_ui = graphene.List(StorageUI)
     # type
     box_type = graphene.Field(BoxType, id=graphene.Int())
@@ -519,6 +521,9 @@ class Query(graphene.ObjectType):
             raise Exception('Not logged in!')
 
         return user
+
+    def resolve_all_storage(self, info):
+        return StorageModel.objects.all()
 
     def resolve_all_specimen_types(self, info, **kwargs):
         return SpecimenType.objects.all()
