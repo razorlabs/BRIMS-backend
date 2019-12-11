@@ -177,7 +177,7 @@ class CreateStorageMutation(graphene.Mutation):
         storage_input = StorageModel(
             name=name,
             description=description,
-            parent=container,
+            container=container,
             css_icon=css_icon)
         storage_input.save()
 
@@ -185,7 +185,7 @@ class CreateStorageMutation(graphene.Mutation):
             id=storage_input.id,
             name=storage_input.name,
             description=storage_input.description,
-            container=storage_input.parent,
+            container=storage_input.container,
             css_icon=storage_input.css_icon,
         )
 
@@ -481,9 +481,9 @@ class Query(graphene.ObjectType):
 
         all_storage_objects = StorageModel.objects.all()
         for location in all_storage_objects:
-            content = StorageModel.objects.filter(parent=location.id)
+            content = StorageModel.objects.filter(container=location.id)
             boxes_at_location = BoxModel.objects.filter(storage_location=location.id)
-            if location.parent is None:
+            if location.container is None:
                 top_level = True
             else:
                 top_level = False
