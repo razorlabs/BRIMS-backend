@@ -1,6 +1,9 @@
 from django.db import models
+from django.db.models import signals
+from django.dispatch import receiver
 
 # TODO make delete set parent name to overhead child
+# TODO implement CSS icon display on frontend
 class StorageModel(models.Model):
     """
        Storage objects can be contained in other storage objects ex) box, shelf
@@ -9,11 +12,14 @@ class StorageModel(models.Model):
     """
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)
+    # DO_NOTHING set to prevent NULL overwrite.
+    # on_delete behavior handled by pre_delete below
     container = models.ForeignKey(
         'self',
         null=True,
         blank=True,
-        on_delete=models.SET_NULL)
+        on_delete=models.DO_NOTHING)
+
     """
         css_icon should be equivalent to a css icon class to represent
         the storage object ex) warehouse (for semanitic-ui warehouse icon)
@@ -49,9 +55,10 @@ class BoxModel(models.Model):
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=255, blank=True, null=True)
     box_type = models.ForeignKey('BoxTypeModel', on_delete=models.CASCADE)
-    #TODO set storage location to parent on delete
+    # DO_NOTHING set to prevent NULL overwrite.
+    # on_delete behavior handled by pre_delete below
     storage_location = models.ForeignKey('StorageModel',
-                                         on_delete=models.SET_NULL,
+                                         on_delete=models.DO_NOTHING,
                                          blank=True,
                                          null=True)
 
@@ -84,3 +91,10 @@ class BoxTypeModel(models.Model):
         default=numbered)
     length_inverted = models.BooleanField(default=False)
     height_inverted = models.BooleanField(default=False)
+
+# set child objects to parent object as new parent
+# pre_delete prevents django admin from overwriting/ignoring this behavior
+@receiver(signals.pre_delete, sender=StorageModel)
+def set_child_storage_to_parent(sender, instance, *args, **kwargs):
+    StorageModel.objects.filter(container=instance).update(container=instance.container)
+    BoxModel.objects.filter(storage_location=instance).update(storage_location=instance.container)
