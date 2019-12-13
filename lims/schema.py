@@ -149,6 +149,18 @@ class AliquotModelType(DjangoObjectType):
     def resolve_type(self, info):
         return '{}'.format(self.type.type)
 
+class DeleteStorage(graphene.Mutation):
+    id = graphene.Int()
+    deleted = graphene.Boolean()
+    class Arguments:
+        id = graphene.Int()
+
+    def mutate(self, info, **kwargs):
+        id = kwargs.get('id', None)
+        storage = StorageModel.objects.get(id=id)
+        storage.delete()
+        return DeleteStorage(deleted=True, id=id)
+
 class CreateStorageMutation(graphene.Mutation):
     id = graphene.Int()
     name = graphene.String()
@@ -423,6 +435,7 @@ class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     create_event = CreateEventMutation.Field()
     create_storage = CreateStorageMutation.Field()
+    delete_storage = DeleteStorage.Field()
 
 
 class Query(graphene.ObjectType):
