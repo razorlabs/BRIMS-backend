@@ -18,7 +18,7 @@ from lims.models.specimen import *
     to be set during mutation. It is used elsewhere for consistency.
 """
 
-class Box(DjangoObjectType):
+class BoxModelType(DjangoObjectType):
     class Meta:
         model = BoxModel
 
@@ -30,6 +30,18 @@ class BoxSlotType(DjangoObjectType):
     class Meta:
         model = BoxSlotModel
 
+class CarrierModelType(DjangoObjectType):
+    class Meta:
+        model = CarrierModel
+
+class DestinationModelType(DjangoObjectType):
+    class Meta:
+        model = DestinationModel
+
+class ShipmentModelType(DjangoObjectType):
+    class Meta:
+        model = ShipmentModel
+
 class StorageType(DjangoObjectType):
     class Meta:
         model = StorageModel
@@ -38,7 +50,7 @@ class StorageUI(graphene.ObjectType):
     key = graphene.String()
     title = graphene.String()
     content = graphene.List(StorageType)
-    boxes = graphene.List(Box)
+    boxes = graphene.List(BoxModelType)
     css_icon = graphene.String()
     top_level = graphene.Boolean()
 
@@ -73,16 +85,13 @@ class VisitType(DjangoObjectType):
         model = VisitModel
 
 
-
 class EventType(DjangoObjectType):
     class Meta:
         model = EventModel
 
-
 class ScheduleType(DjangoObjectType):
     class Meta:
         model = ScheduleModel
-
 
 class SpecimenTypeModelType(DjangoObjectType):
     """
@@ -93,7 +102,6 @@ class SpecimenTypeModelType(DjangoObjectType):
     class Meta:
         model = SpecimenType
 
-
 class AliquotTypeModelType(DjangoObjectType):
     """
         Hate the name here too
@@ -102,7 +110,6 @@ class AliquotTypeModelType(DjangoObjectType):
 
     class Meta:
         model = AliquotType
-
 
 
 class SpecimenModelType(DjangoObjectType):
@@ -137,8 +144,12 @@ class AliquotModelType(DjangoObjectType):
     visit = graphene.String()
     type = graphene.String()
     specimenid = graphene.Int()
+    patient = graphene.String()
     class Meta:
         model = AliquotModel
+
+    def resolve_patient(self, info):
+        return '{}'.format(self.specimen.patient)
 
     def resolve_specimenid(self, info):
         return '{}'.format(self.specimen.id)
@@ -148,6 +159,18 @@ class AliquotModelType(DjangoObjectType):
 
     def resolve_type(self, info):
         return '{}'.format(self.type.type)
+
+class ManifestType(graphene.ObjectType):
+    """
+        key: Box id
+        name: Box description
+        aliquot: all aliquot contained within a box
+        Box slot row and column position to be included after all_slot refactor
+    """
+    key = graphene.String()
+    name = graphene.String()
+    aliquot = graphene.List(AliquotModelType)
+
 
 class DeleteStorage(graphene.Mutation):
     id = graphene.Int()
@@ -444,7 +467,9 @@ class Query(graphene.ObjectType):
     me = graphene.Field(UserType)
     users = graphene.List(UserType)
     search_specimen = graphene.List(PatientType, patient=graphene.String())
-    all_boxes = graphene.List(Box)
+    all_shipments = graphene.List(ShipmentModelType)
+    shipment_manifest = graphene.List(ManifestType, shipment=graphene.Int())
+    all_boxes = graphene.List(BoxModelType)
     all_specimen_types = graphene.List(SpecimenTypeModelType)
     all_aliquot_types = graphene.List(AliquotTypeModelType)
     all_slots = graphene.types.json.JSONString(id=graphene.Int())
@@ -463,7 +488,24 @@ class Query(graphene.ObjectType):
                              id=graphene.Int(),
                              pid=graphene.String(),
                              external_id=graphene.String())
-    box = graphene.Field(Box, id=graphene.Int())
+    box = graphene.Field(BoxModelType, id=graphene.Int())
+
+    def resolve_all_shipments(self, info):
+        return ShipmentModel.objects.all()
+
+    def resolve_shipment_manifest(self, info, **kwargs):
+        target_shipment = kwargs.get('shipment')
+        shipment = ShipmentModel.objects.get(pk=target_shipment)
+        boxes = BoxModel.objects.filter(manifest=shipment)
+        all_manifest = []
+
+        for box in boxes:
+            slots = BoxSlotModel.objects.filter(box=box.id)
+            aliquot_list = []
+            for slot in slots:
+                aliquot_list.append(slot.content)
+            all_manifest.append(ManifestType(key=box.id, name=box.name, aliquot=aliquot_list))
+        return all_manifest
 
     def resolve_storage_ui(self, info):
         """
