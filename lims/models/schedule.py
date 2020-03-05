@@ -22,12 +22,6 @@ class EventModel(models.Model):
     def __str__(self):
         return self.event
 
-class SpecimenType(models.Model):
-    type = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.type
-
 # eventually https://python-jsonschema.readthedocs.io/en/stable/ should be implemented
 # TODO override create/save function to check against Specimen/Event
 
