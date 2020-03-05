@@ -1,8 +1,8 @@
 from django.db import models
 from django.db.models import signals
 from django.dispatch import receiver
+from lims.models.shipping import ShipmentModel
 
-# TODO make delete set parent name to overhead child
 # TODO implement CSS icon display on frontend
 class StorageModel(models.Model):
     """
@@ -61,7 +61,10 @@ class BoxModel(models.Model):
                                          on_delete=models.DO_NOTHING,
                                          blank=True,
                                          null=True)
-
+    manifest = models.ForeignKey('ShipmentModel',
+                                 on_delete=models.SET_NULL,
+                                 blank=True,
+                                 null=True)
     def __str__(self):
         return str(self.name)
 
