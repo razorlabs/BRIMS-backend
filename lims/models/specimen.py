@@ -1,8 +1,14 @@
 from django.db import models
 from lims.models.patient import PatientModel
+from lims.models.shipping import ShipmentModel
+
+class SpecimenType(models.Model):
+    type = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.type
 
 class SpecimenModel(models.Model):
-
     patient = models.ForeignKey('PatientModel', on_delete=models.CASCADE)
     type = models.ForeignKey(
         'SpecimenType', related_name='types', on_delete=models.CASCADE)
@@ -26,7 +32,6 @@ class AliquotType(models.Model):
 
 
 class AliquotModel(models.Model):
-
     specimen = models.ForeignKey('SpecimenModel', on_delete=models.CASCADE)
     type = models.ForeignKey(
         'AliquotType', related_name='types', on_delete=models.CASCADE)
