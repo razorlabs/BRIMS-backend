@@ -1,7 +1,13 @@
 from django.db import models
 
+"""
+    ShipmentModels have a one to many relationship with boxes and aliquot
+    Aliquot and Box foreign keys to a ShipmentModel determine manifest contents
+    for shipping purposes (resolved in schema return for manifest view)
+
+"""
+
 class ShipmentModel(models.Model):
-    contents = models.ManyToManyField('AliquotModel')
     carrier = models.ForeignKey('CarrierModel',
                                 on_delete=models.SET_NULL,
                                 blank=True,
