@@ -16,7 +16,6 @@ class SpecimenModel(models.Model):
     collecttime = models.TimeField()
     create_date = models.DateTimeField(auto_now_add=True)
     modify_date = models.DateTimeField(auto_now=True)
-    volume = models.FloatField()
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
