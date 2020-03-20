@@ -4,7 +4,8 @@ from graphql_jwt.decorators import login_required
 
 from graphene_django.types import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, logout
+from django.conf import settings
 
 from lims.models.user import *
 from lims.models.schedule import *
@@ -448,10 +449,28 @@ class CreatePatientMutation(graphene.Mutation):
             synced=patient_input.synced,
         )
 
+class LogoutMutation(graphene.Mutation):
+    """
+       Calls django-logout from mutation and returns redirect URL
+    """
+
+    redirect = graphene.String()
+
+    @classmethod
+    def mutate(cls, root, info):
+        logout(info.context)
+        print("worked")
+        redirect = settings.LOGOUT_REDIRECT_URL
+        return cls(redirect=redirect)
+
+
 class Mutation(graphene.ObjectType):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
+    delete_token_cookie = graphql_jwt.DeleteJSONWebTokenCookie.Field()
+    delete_token_refresh = graphql_jwt.DeleteRefreshTokenCookie.Field()
+    logout = LogoutMutation.Field()
     create_patient = CreatePatientMutation.Field()
     create_specimen = CreateSpecimenMutation.Field()
     create_aliquot = CreateAliquotMutation.Field()
@@ -489,6 +508,12 @@ class Query(graphene.ObjectType):
                              pid=graphene.String(),
                              external_id=graphene.String())
     box = graphene.Field(BoxModelType, id=graphene.Int())
+
+    def resolve_me(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception('Not logged in')
+        return user
 
     def resolve_all_shipments(self, info):
         return ShipmentModel.objects.all()
@@ -566,16 +591,8 @@ class Query(graphene.ObjectType):
 
         return None
 
-
     def resolve_users(self, info):
         return get_user_model().objects.all()
-
-    def resolve_me(self, info):
-        user = info.context.user
-        if user.is_anonymous:
-            raise Exception('Not logged in!')
-
-        return user
 
     def resolve_all_storage(self, info):
         return StorageModel.objects.all()
