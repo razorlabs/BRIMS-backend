@@ -449,9 +449,12 @@ class CreatePatientMutation(graphene.Mutation):
             synced=patient_input.synced,
         )
 
+
 class LogoutMutation(graphene.Mutation):
     """
        Calls django-logout from mutation and returns redirect URL
+       Redirect url acquisition converted to query
+       leaving in codebase as example of logout from django internal session
     """
 
     redirect = graphene.String()
@@ -459,7 +462,6 @@ class LogoutMutation(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info):
         logout(info.context)
-        print("worked")
         redirect = settings.LOGOUT_REDIRECT_URL
         return cls(redirect=redirect)
 
@@ -470,7 +472,8 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_jwt.Refresh.Field()
     delete_token_cookie = graphql_jwt.DeleteJSONWebTokenCookie.Field()
     delete_token_refresh = graphql_jwt.DeleteRefreshTokenCookie.Field()
-    logout = LogoutMutation.Field()
+    # leaving in codebase for example purposes, redirect url moved to query
+    #logout = LogoutMutation.Field()
     create_patient = CreatePatientMutation.Field()
     create_specimen = CreateSpecimenMutation.Field()
     create_aliquot = CreateAliquotMutation.Field()
@@ -485,6 +488,7 @@ class Query(graphene.ObjectType):
     # (underscores end up camelCase for graphql spec)
     me = graphene.Field(UserType)
     users = graphene.List(UserType)
+    redirect_url = graphene.String()
     search_specimen = graphene.List(PatientType, patient=graphene.String())
     all_shipments = graphene.List(ShipmentModelType)
     shipment_manifest = graphene.List(ManifestType, shipment=graphene.Int())
@@ -514,6 +518,10 @@ class Query(graphene.ObjectType):
         if user.is_anonymous:
             raise Exception('Not logged in')
         return user
+
+    def resolve_redirect_url(self, info):
+        redirect = settings.LOGOUT_REDIRECT_URL
+        return redirect
 
     def resolve_all_shipments(self, info):
         return ShipmentModel.objects.all()
