@@ -397,32 +397,47 @@ class CreateSpecimenMutation(graphene.Mutation):
         )
 
 
+class EditPatientPidMutation(graphene.Mutation):
+    id = graphene.Int()
+    pid = graphene.String()
+
+    class Arguments:
+       id = graphene.Int()
+       pid = graphene.String()
+
+    def mutate(self, info, id, pid):
+        target_patient = PatientModel.objects.get(pk=id)
+        target_patient.pid = pid
+        target_patient.save()
+
+        return EditPatientPidMutation(
+            id=target_patient.id,
+            pid=target_patient.pid
+        )
+
+
 class CreatePatientMutation(graphene.Mutation):
     """
     Allows creation of a patient from web UI or external source
     Arguments:
     id --
     pid --
-    external_id --
     source -- should be set based on django settings (local system or remote)
-    synced --
+    synced -- has the patient been verified as existing in external system
     """
     id = graphene.Int()
     pid = graphene.String()
     drawschedule = graphene.Int()
-    external_id = graphene.String()
     source = graphene.Int()
     synced = graphene.Boolean()
 
     class Arguments:
         pid = graphene.String()
-        external_id = graphene.String()
         drawschedule = graphene.Int()
         source = graphene.Int()
         synced = graphene.Boolean()
 
     def mutate(self, info, pid, **kwargs):
-        external_id = kwargs.get('external_id', None)
         drawschedule = kwargs.get('drawschedule', None)
         source = kwargs.get('source', 1)
         synced = kwargs.get('synced', False)
@@ -434,7 +449,6 @@ class CreatePatientMutation(graphene.Mutation):
 
         patient_input = PatientModel(
             pid=pid,
-            external_id=external_id,
             draw_schedule=drawinput,
             source=SourceModel.objects.get(id=source),
             synced=synced)
@@ -444,7 +458,6 @@ class CreatePatientMutation(graphene.Mutation):
             id=patient_input.id,
             pid=patient_input.pid,
             drawschedule=patient_input.draw_schedule,
-            external_id=patient_input.external_id,
             source=patient_input.source,
             synced=patient_input.synced,
         )
@@ -481,6 +494,7 @@ class Mutation(graphene.ObjectType):
     create_event = CreateEventMutation.Field()
     create_storage = CreateStorageMutation.Field()
     delete_storage = DeleteStorage.Field()
+    edit_pid = EditPatientPidMutation.Field()
 
 
 class Query(graphene.ObjectType):
@@ -510,7 +524,7 @@ class Query(graphene.ObjectType):
     patient = graphene.Field(PatientType,
                              id=graphene.Int(),
                              pid=graphene.String(),
-                             external_id=graphene.String())
+                             )
     box = graphene.Field(BoxModelType, id=graphene.Int())
 
     def resolve_me(self, info):
@@ -684,16 +698,12 @@ class Query(graphene.ObjectType):
     def resolve_patient(self, info, **kwargs):
         id = kwargs.get('id')
         pid = kwargs.get('pid')
-        external_id = kwargs.get('external_id')
 
         if id is not None:
             return PatientModel.objects.get(pk=id)
 
         if pid is not None:
             return PatientModel.objects.get(pid=pid)
-
-        if external_id is not None:
-            return PatientModel.objects.get(external_id=external_id)
 
         return None
 
